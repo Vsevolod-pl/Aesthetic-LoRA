@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQA-VLM: Image Quality Assessment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+  h1 { font-size: 1.6rem; margin-bottom: 24px; }
+
+  .section { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .section-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 12px; }
+
+  /* Image upload */
+  .images-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .image-slot { text-align: center; }
+  .image-slot label {
+    display: block; border: 2px dashed #ccc; border-radius: 8px; padding: 32px 16px;
+    cursor: pointer; transition: border-color 0.2s; position: relative; min-height: 200px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .image-slot label:hover { border-color: #888; }
+  .image-slot label.has-image { padding: 8px; border-style: solid; }
+  .image-slot input[type="file"] { display: none; }
+  .image-slot .slot-label { font-size: 0.9rem; color: #999; }
+  .image-slot img { max-width: 100%; max-height: 300px; border-radius: 4px; display: none; }
+  .image-slot .slot-number { font-weight: 700; font-size: 1.1rem; color: #555; margin-bottom: 4px; }
+
+  /* Model selector */
+  .model-row { display: flex; align-items: center; gap: 12px; }
+  .model-row select { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+
+  /* Prompt textarea */
+  .prompt-area textarea {
+    width: 100%; min-height: 180px; padding: 12px; border: 1px solid #ccc; border-radius: 6px;
+    font-family: monospace; font-size: 0.85rem; resize: vertical; line-height: 1.5;
+  }
+  .prompt-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+  .btn-secondary {
+    background: none; border: 1px solid #ccc; border-radius: 6px; padding: 6px 14px;
+    cursor: pointer; font-size: 0.8rem; color: #666;
+  }
+  .btn-secondary:hover { border-color: #888; color: #333; }
+
+  /* Compare button */
+  .compare-row { text-align: center; }
+  .btn-primary {
+    background: #2563eb; color: #fff; border: none; border-radius: 8px;
+    padding: 14px 48px; font-size: 1rem; font-weight: 600; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #93b4f5; cursor: not-allowed; }
+
+  /* Loading */
+  .loading { display: none; text-align: center; padding: 24px; color: #666; }
+  .loading .spinner {
+    display: inline-block; width: 24px; height: 24px; border: 3px solid #ddd;
+    border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  .results { display: none; }
+  .vote-result {
+    text-align: center; padding: 16px; background: #f0f7ff; border-radius: 8px; margin-bottom: 16px;
+  }
+  .vote-result .winner-label { font-size: 1.3rem; font-weight: 700; color: #1d4ed8; }
+  .vote-result .vote-raw { font-size: 0.8rem; color: #888; margin-top: 4px; }
+  .description-text { white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem; }
+
+  /* Winner highlight */
+  .image-slot label.winner-1, .image-slot label.winner-2 {
+    border-color: #22c55e; border-width: 3px; border-style: solid;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>IQA-VLM: Image Quality Assessment</h1>
+
+  <!-- Image uploads -->
+  <div class="section">
+    <div class="section-title">Images</div>
+    <div class="images-row">
+      <div class="image-slot">
+        <label for="image1-input" id="image1-label">
+          <div class="slot-number">Image 1</div>
+          <div class="slot-label">Click or drop to upload</div>
+          <img id="image1-preview" alt="">
+        </label>
+        <input type="file" id="image1-input" accept="image/*">
+      </div>
+      <div class="image-slot">
+        <label for="image2-input" id="image2-label">
+          <div class="slot-number">Image 2</div>
+          <div class="slot-label">Click or drop to upload</div>
+          <img id="image2-preview" alt="">
+        </label>
+        <input type="file" id="image2-input" accept="image/*">
+      </div>
+    </div>
+  </div>
+
+  <!-- Model selector -->
+  <div class="section">
+    <div class="section-title">Model</div>
+    <div class="model-row">
+      <select id="model-select"></select>
+    </div>
+  </div>
+
+  <!-- Describe prompt -->
+  <div class="section">
+    <div class="section-title">Description Prompt</div>
+    <div class="prompt-area">
+      <textarea id="describe-prompt"></textarea>
+    </div>
+    <div class="prompt-actions">
+      <button class="btn-secondary" id="reset-prompt">Reset to default</button>
+    </div>
+  </div>
+
+  <!-- Compare button -->
+  <div class="section compare-row">
+    <button class="btn-primary" id="compare-btn">Compare Images</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <span class="spinner"></span> Analyzing images... This may take a minute.
+  </div>
+
+  <!-- Results -->
+  <div class="section results" id="results">
+    <div class="section-title">Results</div>
+    <div class="vote-result">
+      <div class="winner-label" id="winner-text"></div>
+      <div class="vote-raw" id="vote-raw"></div>
+    </div>
+    <div class="description-text" id="description-text"></div>
+  </div>
+</div>
+
+<script>
+(async function() {
+  // Load config
+  const config = await fetch('/api/config').then(r => r.json());
+
+  // Populate model dropdown
+  const select = document.getElementById('model-select');
+  config.models.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.key;
+    opt.textContent = m.label;
+    select.appendChild(opt);
+  });
+
+  // Set default prompt
+  const textarea = document.getElementById('describe-prompt');
+  textarea.value = config.default_describe_prompt;
+  textarea.dataset.defaultValue = config.default_describe_prompt;
+
+  // Reset prompt button
+  document.getElementById('reset-prompt').addEventListener('click', () => {
+    textarea.value = textarea.dataset.defaultValue;
+  });
+
+  // Image preview
+  function setupPreview(inputId, previewId, labelId) {
+    document.getElementById(inputId).addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = document.getElementById(previewId);
+        img.src = ev.target.result;
+        img.style.display = 'block';
+        const label = document.getElementById(labelId);
+        label.classList.add('has-image');
+        label.querySelector('.slot-label').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  setupPreview('image1-input', 'image1-preview', 'image1-label');
+  setupPreview('image2-input', 'image2-preview', 'image2-label');
+
+  // Compare
+  document.getElementById('compare-btn').addEventListener('click', async () => {
+    const file1 = document.getElementById('image1-input').files[0];
+    const file2 = document.getElementById('image2-input').files[0];
+    if (!file1 || !file2) {
+      alert('Please upload both images.');
+      return;
+    }
+
+    const btn = document.getElementById('compare-btn');
+    btn.disabled = true;
+    btn.textContent = 'Analyzing...';
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+
+    // Clear previous winner highlights
+    document.getElementById('image1-label').classList.remove('winner-1', 'winner-2');
+    document.getElementById('image2-label').classList.remove('winner-1', 'winner-2');
+
+    const form = new FormData();
+    form.append('image1', file1);
+    form.append('image2', file2);
+    form.append('model_key', select.value);
+    form.append('describe_prompt', textarea.value);
+
+    try {
+      const resp = await fetch('/api/compare', { method: 'POST', body: form });
+      if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(err);
+      }
+      const result = await resp.json();
+
+      document.getElementById('winner-text').textContent =
+        'Image ' + result.winner + ' is better';
+      document.getElementById('vote-raw').textContent =
+        'Raw model output: "' + result.vote_raw + '"';
+      document.getElementById('description-text').textContent = result.description;
+      document.getElementById('results').style.display = 'block';
+
+      // Highlight winner
+      if (result.winner === '1') {
+        document.getElementById('image1-label').classList.add('winner-1');
+      } else if (result.winner === '2') {
+        document.getElementById('image2-label').classList.add('winner-2');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Compare Images';
+      document.getElementById('loading').style.display = 'none';
+    }
+  });
+})();
+</script>
+</body>
+</html>

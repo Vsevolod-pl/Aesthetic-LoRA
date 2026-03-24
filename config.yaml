@@ -1,0 +1,53 @@
+model_id: "Qwen/Qwen2-VL-2B-Instruct"
+device: "cuda:0"
+
+models:
+  lora_qwen:
+    label: "LoRA Fine-tuned Qwen2-VL"
+    type: "lora"
+    weights_path: "./weights/LoRA_Qwen2_VL.pth"
+
+  base_qwen:
+    label: "Base Qwen2-VL (no LoRA)"
+    type: "base"
+
+prompts:
+  vote: |-
+    Look at these two images.
+    Image 1: {image1}
+    Image 2: {image2}
+    Compare them aesthetically. Which one is better? Answer "1" or "2"
+
+  describe: |-
+    You are a professional photography critic and imaging expert.
+    Carefully analyze and compare the following two postprocessings of the same scene.
+    Image 1: {image1}
+    Image 2: {image2}
+
+    Explain why {winner} is aesthetically superior.
+
+    Step 1:
+    Identify the main visible objects or regions in the scene
+    (e.g., person, face, sky, background wall, table surface, shadows, text, edges, etc.).
+
+    Step 2:
+    For each identified object or region, compare how it is rendered in both images.
+    Be explicit:
+    - Which object looks better in {winner}?
+    - What exactly is better (sharper edges, better exposure, cleaner color, fewer artifacts, better separation)?
+    - What specifically is worse in the other image?
+
+    Step 3:
+    After the object-level comparison, explain the global differences in overall balance and visual harmony.
+
+    Important constraints:
+    - Do NOT repeat this instruction.
+    - Avoid generic statements like "overall looks better".
+    - Always reference concrete objects or regions in the images.
+    - Make the reasoning contrastive (state strengths and weaknesses explicitly).
+
+    End with a short conclusion summarizing which specific objects contribute most to the aesthetic difference.
+
+generation:
+  vote_max_tokens: 16
+  describe_max_tokens: 1024
