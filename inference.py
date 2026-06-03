@@ -1,3 +1,5 @@
+import random
+
 import torch
 import yaml
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
@@ -5,13 +7,20 @@ from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 _processor = None
 _models = {}
 _config = None
+_mock_mode = False
 
 
 def init_models(config_path: str = "config.yaml"):
-    global _processor, _models, _config
+    global _processor, _models, _config, _mock_mode
 
     with open(config_path) as f:
         _config = yaml.safe_load(f)
+
+    _mock_mode = bool(_config.get("mock_mode", False))
+
+    if _mock_mode:
+        print("Mock mode enabled — skipping model loading")
+        return
 
     model_id = _config["model_id"]
     device = _config["device"]
@@ -42,6 +51,10 @@ def init_models(config_path: str = "config.yaml"):
     print(f"Loaded {len(_models)} models: {list(_models.keys())}")
 
 
+def is_mock_mode() -> bool:
+    return _mock_mode
+
+
 def get_model_choices() -> list[dict]:
     return [
         {"key": key, "label": cfg["label"]}
@@ -51,6 +64,10 @@ def get_model_choices() -> list[dict]:
 
 def get_default_describe_prompt() -> str:
     return _config["prompts"]["describe"]
+
+
+def get_images_folder() -> str:
+    return _config.get("images_folder", "") if _config else ""
 
 
 def _build_conversation(
@@ -103,6 +120,19 @@ def _generate(model, conversation: list, max_new_tokens: int) -> str:
     return text
 
 
+def _mock_compare(img1_path: str, img2_path: str) -> dict:
+    winner = random.choice(["1", "2"])
+    loser = "2" if winner == "1" else "1"
+    description = (
+        f"Image {winner} is preferred. It demonstrates stronger tonal balance, "
+        f"more natural color grading, and better overall exposure compared to Image {loser}. "
+        f"The highlights are better controlled and shadows retain more detail. "
+        f"Color temperature feels more natural and pleasing to the eye.\n\n"
+        f"[Mock mode — LLM is disabled]"
+    )
+    return {"vote_raw": winner, "winner": winner, "description": description}
+
+
 @torch.no_grad()
 def run_inference(
     model_key: str,
@@ -110,6 +140,9 @@ def run_inference(
     img2_path: str,
     describe_prompt: str | None = None,
 ) -> dict:
+    if _mock_mode:
+        return _mock_compare(img1_path, img2_path)
+
     model = _models[model_key]
     vote_template = _config["prompts"]["vote"]
     desc_template = describe_prompt or _config["prompts"]["describe"]
@@ -120,7 +153,6 @@ def run_inference(
     conversation = _build_conversation(vote_template, img1_path, img2_path)
     vote_text = _generate(model, conversation, vote_max)
 
-    # Extract "1" or "2" from response
     winner = vote_text
     for char in vote_text:
         if char in ("1", "2"):

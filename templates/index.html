@@ -5,106 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IQA-VLM: Image Quality Assessment</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+.container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+h1 { font-size: 1.6rem; margin-bottom: 16px; }
 
-  .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+.mock-banner {
+  display: none; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px;
+  padding: 8px 14px; margin-bottom: 16px; font-size: 0.9rem; color: #92400e;
+}
 
-  h1 { font-size: 1.6rem; margin-bottom: 24px; }
+/* Section */
+.section { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.section-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 12px; }
 
-  .section { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
-  .section-title { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 12px; }
+/* Mode tabs */
+.mode-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.mode-tab {
+  padding: 8px 18px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
+  cursor: pointer; font-size: 0.9rem; color: #555; transition: all 0.15s;
+}
+.mode-tab:hover { border-color: #888; color: #333; }
+.mode-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
 
-  /* Image upload */
-  .images-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .image-slot { text-align: center; }
-  .image-slot label {
-    display: block; border: 2px dashed #ccc; border-radius: 8px; padding: 32px 16px;
-    cursor: pointer; transition: border-color 0.2s; position: relative; min-height: 200px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .image-slot label:hover { border-color: #888; }
-  .image-slot label.has-image { padding: 8px; border-style: solid; }
-  .image-slot input[type="file"] { display: none; }
-  .image-slot .slot-label { font-size: 0.9rem; color: #999; }
-  .image-slot img { max-width: 100%; max-height: 300px; border-radius: 4px; display: none; }
-  .image-slot .slot-number { font-weight: 700; font-size: 1.1rem; color: #555; margin-bottom: 4px; }
+/* Upload 2 mode */
+.images-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.image-slot { text-align: center; }
+.image-slot label {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 2px dashed #ccc; border-radius: 8px; padding: 32px 16px; cursor: pointer;
+  transition: border-color 0.2s; min-height: 200px;
+}
+.image-slot label:hover { border-color: #888; }
+.image-slot label.has-image { padding: 8px; border-style: solid; }
+.image-slot input[type="file"] { display: none; }
+.slot-label { font-size: 0.9rem; color: #999; }
+.slot-number { font-weight: 700; font-size: 1.1rem; color: #555; margin-bottom: 4px; }
+.image-slot img { max-width: 100%; max-height: 300px; border-radius: 4px; display: none; }
+.image-slot label.winner { border-color: #22c55e; border-width: 3px; border-style: solid; }
 
-  /* Model selector */
-  .model-row { display: flex; align-items: center; gap: 12px; }
-  .model-row select { flex: 1; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+/* Edit mode */
+.edit-layout { display: grid; grid-template-columns: 1fr 220px 1fr; gap: 16px; align-items: start; }
+.edit-img-box {
+  border: 2px dashed #ccc; border-radius: 8px; min-height: 200px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.edit-img-box.has-image { border-style: solid; }
+.edit-img-box img { max-width: 100%; max-height: 340px; border-radius: 4px; display: none; }
+.edit-img-box .upload-hint { font-size: 0.9rem; color: #999; cursor: pointer; padding: 32px 16px; text-align: center; width: 100%; }
+.edit-img-box .img-label { font-size: 0.8rem; font-weight: 600; color: #888; text-transform: uppercase; padding: 6px 0 2px; }
+.edit-img-box label.cover { position: absolute; inset: 0; cursor: pointer; }
+.edit-img-box label.cover input { display: none; }
 
-  /* Prompt textarea */
-  .prompt-area textarea {
-    width: 100%; min-height: 180px; padding: 12px; border: 1px solid #ccc; border-radius: 6px;
-    font-family: monospace; font-size: 0.85rem; resize: vertical; line-height: 1.5;
-  }
-  .prompt-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
-  .btn-secondary {
-    background: none; border: 1px solid #ccc; border-radius: 6px; padding: 6px 14px;
-    cursor: pointer; font-size: 0.8rem; color: #666;
-  }
-  .btn-secondary:hover { border-color: #888; color: #333; }
+.sliders-col { display: flex; flex-direction: column; gap: 10px; }
+.slider-row label { font-size: 0.8rem; color: #555; display: flex; justify-content: space-between; margin-bottom: 2px; }
+.slider-row label span { font-variant-numeric: tabular-nums; color: #2563eb; font-weight: 600; }
+.slider-row input[type="range"] { width: 100%; accent-color: #2563eb; }
+.btn-reset-sliders {
+  margin-top: 6px; background: none; border: 1px solid #ccc; border-radius: 6px;
+  padding: 6px 10px; font-size: 0.8rem; color: #666; cursor: pointer; width: 100%;
+}
+.btn-reset-sliders:hover { border-color: #888; color: #333; }
 
-  /* Compare button */
-  .compare-row { text-align: center; }
-  .btn-primary {
-    background: #2563eb; color: #fff; border: none; border-radius: 8px;
-    padding: 14px 48px; font-size: 1rem; font-weight: 600; cursor: pointer;
-    transition: background 0.2s;
-  }
-  .btn-primary:hover { background: #1d4ed8; }
-  .btn-primary:disabled { background: #93b4f5; cursor: not-allowed; }
+/* Folder gallery */
+.folder-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.thumb {
+  border: 2px solid #ddd; border-radius: 6px; overflow: hidden; cursor: pointer;
+  transition: border-color 0.15s;
+}
+.thumb:hover { border-color: #2563eb; }
+.thumb img { width: 100%; height: 90px; object-fit: cover; display: block; }
+.thumb .thumb-name { font-size: 0.7rem; padding: 4px 6px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  /* Loading */
-  .loading { display: none; text-align: center; padding: 24px; color: #666; }
-  .loading .spinner {
-    display: inline-block; width: 24px; height: 24px; border: 3px solid #ddd;
-    border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;
-    vertical-align: middle; margin-right: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* Model selector */
+.model-row select { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
 
-  /* Results */
-  .results { display: none; }
-  .vote-result {
-    text-align: center; padding: 16px; background: #f0f7ff; border-radius: 8px; margin-bottom: 16px;
-  }
-  .vote-result .winner-label { font-size: 1.3rem; font-weight: 700; color: #1d4ed8; }
-  .vote-result .vote-raw { font-size: 0.8rem; color: #888; margin-top: 4px; }
-  .description-text { white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem; }
+/* Prompt */
+.prompt-area textarea {
+  width: 100%; min-height: 160px; padding: 12px; border: 1px solid #ccc; border-radius: 6px;
+  font-family: monospace; font-size: 0.85rem; resize: vertical; line-height: 1.5;
+}
+.prompt-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+.btn-secondary {
+  background: none; border: 1px solid #ccc; border-radius: 6px; padding: 6px 14px;
+  cursor: pointer; font-size: 0.8rem; color: #666;
+}
+.btn-secondary:hover { border-color: #888; color: #333; }
 
-  /* Winner highlight */
-  .image-slot label.winner-1, .image-slot label.winner-2 {
-    border-color: #22c55e; border-width: 3px; border-style: solid;
-  }
+/* Compare button */
+.compare-row { text-align: center; }
+.btn-primary {
+  background: #2563eb; color: #fff; border: none; border-radius: 8px;
+  padding: 14px 48px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+}
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { background: #93b4f5; cursor: not-allowed; }
+
+/* Loading */
+.loading { display: none; text-align: center; padding: 24px; color: #666; }
+.spinner {
+  display: inline-block; width: 24px; height: 24px; border: 3px solid #ddd;
+  border-top-color: #2563eb; border-radius: 50%; animation: spin 0.8s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Results */
+.results { display: none; }
+.vote-result {
+  text-align: center; padding: 16px; background: #f0f7ff; border-radius: 8px; margin-bottom: 16px;
+}
+.winner-label { font-size: 1.3rem; font-weight: 700; color: #1d4ed8; }
+.vote-raw { font-size: 0.8rem; color: #888; margin-top: 4px; }
+.description-text { white-space: pre-wrap; line-height: 1.6; font-size: 0.95rem; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>IQA-VLM: Image Quality Assessment</h1>
 
-  <!-- Image uploads -->
-  <div class="section">
+  <div class="mock-banner" id="mock-banner">
+    &#9888; Mock mode — LLM is disabled, responses are simulated
+  </div>
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="upload">Upload 2 images</button>
+    <button class="mode-tab" data-mode="edit">Edit single image</button>
+    <button class="mode-tab" data-mode="folder" id="folder-tab" style="display:none">From folder</button>
+  </div>
+
+  <!-- Mode: Upload 2 images -->
+  <div id="mode-upload" class="section">
     <div class="section-title">Images</div>
     <div class="images-row">
       <div class="image-slot">
-        <label for="image1-input" id="image1-label">
+        <label for="u-image1-input" id="u-image1-label">
           <div class="slot-number">Image 1</div>
           <div class="slot-label">Click or drop to upload</div>
-          <img id="image1-preview" alt="">
+          <img id="u-image1-preview" alt="">
         </label>
-        <input type="file" id="image1-input" accept="image/*">
+        <input type="file" id="u-image1-input" accept="image/*">
       </div>
       <div class="image-slot">
-        <label for="image2-input" id="image2-label">
+        <label for="u-image2-input" id="u-image2-label">
           <div class="slot-number">Image 2</div>
           <div class="slot-label">Click or drop to upload</div>
-          <img id="image2-preview" alt="">
+          <img id="u-image2-preview" alt="">
         </label>
-        <input type="file" id="image2-input" accept="image/*">
+        <input type="file" id="u-image2-input" accept="image/*">
       </div>
     </div>
+  </div>
+
+  <!-- Mode: Edit single image -->
+  <div id="mode-edit" class="section" style="display:none">
+    <div class="section-title">Original &amp; Edited</div>
+    <div class="edit-layout">
+      <!-- Original -->
+      <div>
+        <div class="edit-img-box" id="edit-original-box">
+          <div class="img-label">Original</div>
+          <span class="upload-hint" id="edit-upload-hint">Click to upload image</span>
+          <img id="edit-original-img" alt="">
+          <label class="cover"><input type="file" id="edit-file-input" accept="image/*"></label>
+        </div>
+      </div>
+
+      <!-- Sliders -->
+      <div class="sliders-col" id="sliders-col">
+        <div class="slider-row">
+          <label>Brightness <span id="val-brightness">1.00</span></label>
+          <input type="range" id="slider-brightness" min="0.5" max="2.0" step="0.05" value="1.0">
+        </div>
+        <div class="slider-row">
+          <label>Contrast <span id="val-contrast">1.00</span></label>
+          <input type="range" id="slider-contrast" min="0.5" max="2.0" step="0.05" value="1.0">
+        </div>
+        <div class="slider-row">
+          <label>Saturation <span id="val-saturation">1.00</span></label>
+          <input type="range" id="slider-saturation" min="0" max="2.0" step="0.05" value="1.0">
+        </div>
+        <div class="slider-row">
+          <label>Temperature <span id="val-temperature">0</span></label>
+          <input type="range" id="slider-temperature" min="-100" max="100" step="1" value="0">
+        </div>
+        <div class="slider-row">
+          <label>Hue <span id="val-hue">0</span></label>
+          <input type="range" id="slider-hue" min="-180" max="180" step="1" value="0">
+        </div>
+        <button class="btn-reset-sliders" id="reset-sliders">Reset all</button>
+      </div>
+
+      <!-- Edited preview -->
+      <div>
+        <div class="edit-img-box" id="edit-preview-box">
+          <div class="img-label">Edited (preview)</div>
+          <img id="edit-preview-img" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mode: From folder -->
+  <div id="mode-folder" class="section" style="display:none">
+    <div class="section-title">Select image from folder</div>
+    <div class="folder-gallery" id="folder-gallery"></div>
   </div>
 
   <!-- Model selector -->
@@ -133,7 +240,7 @@
 
   <!-- Loading -->
   <div class="loading" id="loading">
-    <span class="spinner"></span> Analyzing images... This may take a minute.
+    <span class="spinner"></span> Analyzing images&hellip; This may take a minute.
   </div>
 
   <!-- Results -->
@@ -148,31 +255,51 @@
 </div>
 
 <script>
-(async function() {
-  // Load config
-  const config = await fetch('/api/config').then(r => r.json());
+(async function () {
+  // ── Config ──────────────────────────────────────────────────
+  const cfg = await fetch('/api/config').then(r => r.json());
 
-  // Populate model dropdown
-  const select = document.getElementById('model-select');
-  config.models.forEach(m => {
+  if (cfg.mock_mode) {
+    document.getElementById('mock-banner').style.display = 'block';
+  }
+  if (cfg.images_folder_enabled) {
+    document.getElementById('folder-tab').style.display = '';
+  }
+
+  const modelSelect = document.getElementById('model-select');
+  cfg.models.forEach(m => {
     const opt = document.createElement('option');
-    opt.value = m.key;
-    opt.textContent = m.label;
-    select.appendChild(opt);
+    opt.value = m.key; opt.textContent = m.label;
+    modelSelect.appendChild(opt);
   });
 
-  // Set default prompt
   const textarea = document.getElementById('describe-prompt');
-  textarea.value = config.default_describe_prompt;
-  textarea.dataset.defaultValue = config.default_describe_prompt;
-
-  // Reset prompt button
+  textarea.value = cfg.default_describe_prompt;
+  textarea.dataset.def = cfg.default_describe_prompt;
   document.getElementById('reset-prompt').addEventListener('click', () => {
-    textarea.value = textarea.dataset.defaultValue;
+    textarea.value = textarea.dataset.def;
   });
 
-  // Image preview
-  function setupPreview(inputId, previewId, labelId) {
+  // ── Mode switching ───────────────────────────────────────────
+  let currentMode = 'upload';
+  const panels = { upload: 'mode-upload', edit: 'mode-edit', folder: 'mode-folder' };
+
+  document.querySelectorAll('.mode-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+  });
+
+  function switchMode(mode) {
+    currentMode = mode;
+    Object.entries(panels).forEach(([m, id]) => {
+      document.getElementById(id).style.display = m === mode ? '' : 'none';
+    });
+    document.querySelectorAll('.mode-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+  }
+
+  // ── Upload 2 mode ────────────────────────────────────────────
+  function setupUploadPreview(inputId, previewId, labelId) {
     document.getElementById(inputId).addEventListener('change', e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -181,61 +308,145 @@
         const img = document.getElementById(previewId);
         img.src = ev.target.result;
         img.style.display = 'block';
-        const label = document.getElementById(labelId);
-        label.classList.add('has-image');
-        label.querySelector('.slot-label').style.display = 'none';
+        const lbl = document.getElementById(labelId);
+        lbl.classList.add('has-image');
+        lbl.querySelector('.slot-label').style.display = 'none';
       };
       reader.readAsDataURL(file);
     });
   }
-  setupPreview('image1-input', 'image1-preview', 'image1-label');
-  setupPreview('image2-input', 'image2-preview', 'image2-label');
+  setupUploadPreview('u-image1-input', 'u-image1-preview', 'u-image1-label');
+  setupUploadPreview('u-image2-input', 'u-image2-preview', 'u-image2-label');
 
-  // Compare
+  // ── Edit mode ────────────────────────────────────────────────
+  const SLIDER_DEFS = {
+    brightness: 1.0, contrast: 1.0, saturation: 1.0,
+    temperature: 0, hue: 0,
+  };
+  let editParams = { ...SLIDER_DEFS };
+  let editSourceFile = null;
+
+  function buildCssFilter(p) {
+    // temperature is approximated as a hue shift (warm→negative, cool→positive)
+    const totalHue = p.hue + (-p.temperature * 0.2);
+    return [
+      `brightness(${p.brightness})`,
+      `contrast(${p.contrast})`,
+      `saturate(${p.saturation})`,
+      `hue-rotate(${totalHue}deg)`,
+    ].join(' ');
+  }
+
+  function updateEditPreview() {
+    const img = document.getElementById('edit-preview-img');
+    if (!img.src || img.style.display === 'none') return;
+    img.style.filter = buildCssFilter(editParams);
+  }
+
+  function formatVal(id, val) {
+    return ['temperature', 'hue'].includes(id) ? String(Math.round(val)) : val.toFixed(2);
+  }
+
+  Object.keys(SLIDER_DEFS).forEach(id => {
+    const slider = document.getElementById(`slider-${id}`);
+    const valEl = document.getElementById(`val-${id}`);
+    slider.addEventListener('input', () => {
+      editParams[id] = parseFloat(slider.value);
+      valEl.textContent = formatVal(id, editParams[id]);
+      updateEditPreview();
+    });
+  });
+
+  document.getElementById('reset-sliders').addEventListener('click', () => {
+    editParams = { ...SLIDER_DEFS };
+    Object.keys(SLIDER_DEFS).forEach(id => {
+      const slider = document.getElementById(`slider-${id}`);
+      slider.value = SLIDER_DEFS[id];
+      document.getElementById(`val-${id}`).textContent = formatVal(id, SLIDER_DEFS[id]);
+    });
+    updateEditPreview();
+  });
+
+  function loadEditImage(file) {
+    editSourceFile = file;
+    const url = URL.createObjectURL(file);
+    const origImg = document.getElementById('edit-original-img');
+    origImg.src = url;
+    origImg.style.display = 'block';
+    document.getElementById('edit-upload-hint').style.display = 'none';
+    document.getElementById('edit-original-box').classList.add('has-image');
+
+    const prevImg = document.getElementById('edit-preview-img');
+    prevImg.src = url;
+    prevImg.style.display = 'block';
+    document.getElementById('edit-preview-box').classList.add('has-image');
+    updateEditPreview();
+  }
+
+  document.getElementById('edit-file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file) loadEditImage(file);
+  });
+
+  // ── Folder gallery ───────────────────────────────────────────
+  if (cfg.images_folder_enabled) {
+    const data = await fetch('/api/images').then(r => r.json());
+    const gallery = document.getElementById('folder-gallery');
+    data.images.forEach(name => {
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      div.innerHTML = `<img src="/api/images/${encodeURIComponent(name)}" loading="lazy"><div class="thumb-name">${name}</div>`;
+      div.addEventListener('click', async () => {
+        const resp = await fetch(`/api/images/${encodeURIComponent(name)}`);
+        const blob = await resp.blob();
+        loadEditImage(new File([blob], name, { type: blob.type }));
+        switchMode('edit');
+      });
+      gallery.appendChild(div);
+    });
+  }
+
+  // ── Compare ──────────────────────────────────────────────────
   document.getElementById('compare-btn').addEventListener('click', async () => {
-    const file1 = document.getElementById('image1-input').files[0];
-    const file2 = document.getElementById('image2-input').files[0];
-    if (!file1 || !file2) {
-      alert('Please upload both images.');
-      return;
+    const btn = document.getElementById('compare-btn');
+    const form = new FormData();
+    form.append('model_key', modelSelect.value);
+    form.append('describe_prompt', textarea.value);
+
+    if (currentMode === 'upload') {
+      const f1 = document.getElementById('u-image1-input').files[0];
+      const f2 = document.getElementById('u-image2-input').files[0];
+      if (!f1 || !f2) { alert('Please upload both images.'); return; }
+      form.append('image1', f1);
+      form.append('image2', f2);
+    } else {
+      // edit or folder mode
+      if (!editSourceFile) { alert('Please select an image first.'); return; }
+      form.append('image1', editSourceFile);
+      form.append('edit_params', JSON.stringify(editParams));
     }
 
-    const btn = document.getElementById('compare-btn');
     btn.disabled = true;
-    btn.textContent = 'Analyzing...';
+    btn.textContent = 'Analyzing…';
     document.getElementById('results').style.display = 'none';
     document.getElementById('loading').style.display = 'block';
-
-    // Clear previous winner highlights
-    document.getElementById('image1-label').classList.remove('winner-1', 'winner-2');
-    document.getElementById('image2-label').classList.remove('winner-1', 'winner-2');
-
-    const form = new FormData();
-    form.append('image1', file1);
-    form.append('image2', file2);
-    form.append('model_key', select.value);
-    form.append('describe_prompt', textarea.value);
+    // Clear winner highlights
+    document.querySelectorAll('.image-slot label').forEach(l => l.classList.remove('winner'));
 
     try {
       const resp = await fetch('/api/compare', { method: 'POST', body: form });
-      if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error(err);
-      }
+      if (!resp.ok) throw new Error(await resp.text());
       const result = await resp.json();
 
-      document.getElementById('winner-text').textContent =
-        'Image ' + result.winner + ' is better';
-      document.getElementById('vote-raw').textContent =
-        'Raw model output: "' + result.vote_raw + '"';
+      document.getElementById('winner-text').textContent = `Image ${result.winner} is better`;
+      document.getElementById('vote-raw').textContent = `Raw model output: "${result.vote_raw}"`;
       document.getElementById('description-text').textContent = result.description;
       document.getElementById('results').style.display = 'block';
 
-      // Highlight winner
-      if (result.winner === '1') {
-        document.getElementById('image1-label').classList.add('winner-1');
-      } else if (result.winner === '2') {
-        document.getElementById('image2-label').classList.add('winner-2');
+      // Highlight winner in upload mode
+      if (currentMode === 'upload') {
+        const lbl = document.getElementById(result.winner === '1' ? 'u-image1-label' : 'u-image2-label');
+        if (lbl) lbl.classList.add('winner');
       }
     } catch (err) {
       alert('Error: ' + err.message);

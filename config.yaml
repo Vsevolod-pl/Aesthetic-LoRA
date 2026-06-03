@@ -1,5 +1,7 @@
 model_id: "Qwen/Qwen2-VL-2B-Instruct"
-device: "cuda:0"
+device: "cpu"
+mock_mode: true
+images_folder: ""
 
 models:
   lora_qwen:
