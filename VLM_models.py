@@ -1,12 +1,13 @@
+import torch
 import torch.nn as nn
 from torch.nn import functional as F
 from peft import LoraConfig, get_peft_model
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 
 class LoRA_Qwen(nn.Module):
-    def __init__(self, MODEL_NAME="Qwen/Qwen2-VL-2B-Instruct", lora_config_params=None, device='cpu'):
+    def __init__(self, MODEL_NAME="Qwen/Qwen2-VL-2B-Instruct", lora_config_params=None, device='cpu', torch_dtype=torch.float16):
         super().__init__()
-        model = Qwen2VLForConditionalGeneration.from_pretrained(MODEL_NAME, device_map=device)
+        model = Qwen2VLForConditionalGeneration.from_pretrained(MODEL_NAME, device_map=device, dtype=torch_dtype)
         if lora_config_params is None:
             lora_config_params = {
                 'r':16,

@@ -1,13 +1,13 @@
 model_id: "Qwen/Qwen2-VL-2B-Instruct"
-device: "cpu"
-mock_mode: true
-images_folder: ""
+device: "cuda:0"
+mock_mode: false
+images_folder: "./examples/"
 
 models:
   lora_qwen:
     label: "LoRA Fine-tuned Qwen2-VL"
     type: "lora"
-    weights_path: "./weights/LoRA_Qwen2_VL.pth"
+    weights_path: "./weights/memorably_interludes_LoRA_Qwen2_VL_3407_debug/memorably_interludes_LoRA_Qwen2_VL_3407_debug_9.pth"
 
   base_qwen:
     label: "Base Qwen2-VL (no LoRA)"

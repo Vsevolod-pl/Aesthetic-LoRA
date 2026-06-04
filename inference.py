@@ -25,8 +25,11 @@ def init_models(config_path: str = "config.yaml"):
     model_id = _config["model_id"]
     device = _config["device"]
 
-    _processor = AutoProcessor.from_pretrained(model_id, use_fast=True)
+    min_pixels = _config.get("min_pixels", 256*28*28)
+    max_pixels = _config.get("max_pixels", 512*28*28)
 
+    _processor = AutoProcessor.from_pretrained(model_id, use_fast=True, min_pixels=min_pixels, max_pixels=max_pixels)
+    
     for key, model_cfg in _config["models"].items():
         if model_cfg["type"] == "lora":
             from VLM_models import LoRA_Qwen

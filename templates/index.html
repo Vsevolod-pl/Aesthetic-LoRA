@@ -131,13 +131,13 @@ h1 { font-size: 1.6rem; margin-bottom: 16px; }
 
   <!-- Mode tabs -->
   <div class="mode-tabs">
-    <button class="mode-tab active" data-mode="upload">Upload 2 images</button>
     <button class="mode-tab" data-mode="edit">Edit single image</button>
-    <button class="mode-tab" data-mode="folder" id="folder-tab" style="display:none">From folder</button>
+    <button class="mode-tab active" data-mode="folder" id="folder-tab" style="display:none">From folder</button>
+    <!-- <button class="mode-tab active" data-mode="upload">Upload 2 images</button> -->
   </div>
 
   <!-- Mode: Upload 2 images -->
-  <div id="mode-upload" class="section">
+  <div id="mode-upload" class="section" style="display:none">
     <div class="section-title">Images</div>
     <div class="images-row">
       <div class="image-slot">
@@ -187,7 +187,7 @@ h1 { font-size: 1.6rem; margin-bottom: 16px; }
           <label>Saturation <span id="val-saturation">1.00</span></label>
           <input type="range" id="slider-saturation" min="0" max="2.0" step="0.05" value="1.0">
         </div>
-        <div class="slider-row">
+        <div class="slider-row" style="display:none">
           <label>Temperature <span id="val-temperature">0</span></label>
           <input type="range" id="slider-temperature" min="-100" max="100" step="1" value="0">
         </div>
@@ -209,7 +209,7 @@ h1 { font-size: 1.6rem; margin-bottom: 16px; }
   </div>
 
   <!-- Mode: From folder -->
-  <div id="mode-folder" class="section" style="display:none">
+  <div id="mode-folder" class="section" style="">
     <div class="section-title">Select image from folder</div>
     <div class="folder-gallery" id="folder-gallery"></div>
   </div>
